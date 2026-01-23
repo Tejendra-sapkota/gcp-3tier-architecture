@@ -1,20 +1,32 @@
 resource "google_cloud_run_service" "web" {
-  name     = "web"
+  name     = var.cloudrun_web_name
   location = var.region
 
   template {
     metadata {
       annotations = {
-        "run.googleapis.com/vpc-access-egress" = "all-traffic"
+        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.connector.id
+        "run.googleapis.com/vpc-access-egress"    = "all-traffic"
       }
     }
 
     spec {
-      service_account_name = google_service_account.web.email
-
       containers {
-        image = "gcr.io/cloudrun/hello"
+        image = var.cloudrun_image_web
+
+        ports {
+          container_port = 8080
+        }
       }
     }
   }
+
+  traffic {
+    percent         = 100
+    latest_revision = true
+  }
+
+  depends_on = [
+    google_vpc_access_connector.connector
+  ]
 }
